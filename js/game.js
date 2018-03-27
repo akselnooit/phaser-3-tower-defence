@@ -16,9 +16,12 @@ let game = new Phaser.Game(config);
 gameScene.init = function() {
     this.playerSpeed = 5;
     this.enemySpeed = 2;
-    this.enemyMaxX = 1000;
-    this.enemyMinX = 80;
+    this.towerX = 950;
+    this.xOutsideMap = 1100;
+    this.enemySpawnX = 10;
     this.lives = 100;
+    this.spawnSpeed = 5000;
+    this.spawnSpeedDecrement = 500;
 };
 
 // load asset files for our game
@@ -56,14 +59,13 @@ gameScene.create = function() {
         }
     });
 
+    // if an enemy goes outside the map, we leave him invisible, so that we can use him later.
+    this.enemiesToReuse = [];
+
     let thisScene = this;
-    setInterval(function () {
-        let newEnemy = thisScene.add.sprite(0, Math.random() * 500 + 50, 'dragon');
-        newEnemy.speed = Math.random() * thisScene.enemySpeed + 1;
-        newEnemy.scaleX = 0.5;
-        newEnemy.scaleY = 0.5;
-        thisScene.enemies.add(newEnemy);
-    }, 2000);
+    setTimeout(function () {
+        spawnEnemy(thisScene);
+    }, this.spawnSpeed);
 
     // scale enemies
     Phaser.Actions.ScaleXY(this.enemies.getChildren(), -0.5, -0.5);
@@ -97,31 +99,17 @@ gameScene.update = function() {
     // enemy movement
     let enemies = this.enemies.getChildren();
     let numEnemies = enemies.length;
-    let cords = '';
     for (let i = 0; i < numEnemies; i++) {
-        // move enemies
-        enemies[i].x += enemies[i].speed;
-        cords += 'X: '+enemies[i].x+', ';
-        // reverse movement if reached the edges
-        if (enemies[i].x >= this.enemyMaxX && enemies[i].speed > 0) {
-            enemies[i].speed *= -1;
-        } else if (enemies[i].xX <= this.enemyMinX && enemies[i].speed < 0) {
-            enemies[i].speed *= -1;
-        }
-        /*
-        // enemy collision
-        if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), enemies[i].getBounds())) {
-            this.gameOver();
-            break;
-        }*/
-        // enemy collision
-        if (Phaser.Geom.Intersects.RectangleToRectangle(this.treasure.getBounds(), enemies[i].getBounds())) {
-            this.lives--;
-            document.getElementById("lives").innerHTML = this.lives + ' lives left';
-            enemies[i].x = 110;
+        if (enemies[i].speed > 0) {
+            enemies[i].x += enemies[i].speed;
+            if (enemies[i].x >= this.towerX ) {
+                enemies[i].speed = 0;
+                enemies[i].x = this.xOutsideMap;
+                this.lives--;
+            }
         }
     }
-    // console.log(cords);
+    document.getElementById("lives").innerHTML = this.lives + ' lives left';
 };
 
 // end the game
@@ -146,3 +134,23 @@ gameScene.gameOver = function() {
         this.cameras.main.resetFX();
     }, [], this);
 };
+
+function spawnEnemy(scene) {
+    let newEnemy;
+    if (scene.enemiesToReuse.length === 0) {
+        newEnemy = scene.add.sprite(scene.enemySpawnX, Math.random() * 500 + 50, 'dragon');
+        scene.enemies.add(newEnemy);
+    } else {
+        newEnemy = scene.enemiesToReuse.pop();
+    }
+
+    newEnemy.x = scene.enemySpawnX;
+    newEnemy.y = Math.random() * 500 + 50;
+    newEnemy.speed = Math.random() * scene.enemySpeed + 1;
+    newEnemy.scaleX = newEnemy.scaleY = 0.5;
+
+    scene.spawnSpeed -= scene.spawnSpeedDecrement;
+    setTimeout(function () {
+        spawnEnemy(scene);
+    }, scene.spawnSpeed);
+}
