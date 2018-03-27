@@ -4,8 +4,8 @@ let gameScene = new Phaser.Scene('Game');
 // our game's configuration
 let config = {
     type: Phaser.AUTO,  //Phaser will decide how to render our game (WebGL or Canvas)
-    width: 640, // game width
-    height: 360, // game height
+    width: 1000, // game width
+    height: 600, // game height
     scene: gameScene // our newly created scene
 };
 
@@ -16,7 +16,7 @@ let game = new Phaser.Game(config);
 gameScene.preload = function() {
 
     // load images
-    this.load.image('background', 'assets/background.png');
+    this.load.image('background', 'assets/bg.png');
     this.load.image('player', 'assets/player.png');
     this.load.image('dragon', 'assets/dragon.png');
     this.load.image('treasure', 'assets/treasure.png');
