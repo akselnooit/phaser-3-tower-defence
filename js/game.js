@@ -12,6 +12,15 @@ let config = {
 // create the game, and pass it the configuration
 let game = new Phaser.Game(config);
 
+// some parameters for our scene (our own customer variables - these are NOT part of the Phaser API)
+gameScene.init = function() {
+    this.playerSpeed = 5;
+    this.enemySpeed = 2;
+    this.enemyMaxX = 1000;
+    this.enemyMinX = 80;
+    this.lives = 100;
+}
+
 // load asset files for our game
 gameScene.preload = function() {
 
@@ -42,12 +51,12 @@ gameScene.create = function() {
     // group of enemies
     this.enemies = this.add.group({
         key: 'dragon',
-        repeat: 5,
+        repeat: 0,
         setXY: {
             x: 110,
-            y: 100,
-            stepX: 80,
-            stepY: 20
+            y: 300,
+            // stepX: 80,
+            // stepY: 20
         }
     });
 
@@ -55,20 +64,13 @@ gameScene.create = function() {
     Phaser.Actions.ScaleXY(this.enemies.getChildren(), -0.5, -0.5);
     // set speeds
     Phaser.Actions.Call(this.enemies.getChildren(), function(enemy) {
-        enemy.speed = Math.random() * 2 + 1;
+        enemy.speed = Math.random() * 5 + 1;
     }, this);
 
     // player is alive
     this.isPlayerAlive = true;
+    document.getElementById('lives').innerHTML = this.lives + ' lives left';
 };
-
-// some parameters for our scene (our own customer variables - these are NOT part of the Phaser API)
-gameScene.init = function() {
-    this.playerSpeed = 5;
-    this.enemySpeed = 2;
-    this.enemyMaxY = 280;
-    this.enemyMinY = 80;
-}
 
 // executed on every frame (60 times per second)
 gameScene.update = function() {
@@ -92,12 +94,12 @@ gameScene.update = function() {
     for (let i = 0; i < numEnemies; i++) {
 
         // move enemies
-        enemies[i].y += enemies[i].speed;
+        enemies[i].x += enemies[i].speed;
 
         // reverse movement if reached the edges
-        if (enemies[i].y >= this.enemyMaxY && enemies[i].speed > 0) {
+        if (enemies[i].x >= this.enemyMaxX && enemies[i].speed > 0) {
             enemies[i].speed *= -1;
-        } else if (enemies[i].y <= this.enemyMinY && enemies[i].speed < 0) {
+        } else if (enemies[i].xX <= this.enemyMinX && enemies[i].speed < 0) {
             enemies[i].speed *= -1;
         }
         // enemy collision
@@ -105,8 +107,15 @@ gameScene.update = function() {
             this.gameOver();
             break;
         }
+        // enemy collision
+        if (Phaser.Geom.Intersects.RectangleToRectangle(this.treasure.getBounds(), enemies[i].getBounds())) {
+            this.lives--;
+            document.getElementById("lives").innerHTML = this.lives + ' lives left';
+            enemies[i].x = 110;
+        }
     }
 };
+
 
 // end the game
 gameScene.gameOver = function() {
