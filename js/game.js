@@ -19,7 +19,7 @@ gameScene.init = function() {
     this.enemyMaxX = 1000;
     this.enemyMinX = 80;
     this.lives = 100;
-}
+};
 
 // load asset files for our game
 gameScene.preload = function() {
@@ -33,18 +33,13 @@ gameScene.preload = function() {
 
 // executed once, after assets were loaded
 gameScene.create = function() {
-
-    // background
     let bg = this.add.sprite(0, 0, 'background');
+    bg.setOrigin(0,0); // change origin to the top-left of the sprite
 
-    // change origin to the top-left of the sprite
-    bg.setOrigin(0,0);
-    // player
-    this.player = this.add.sprite(40, this.sys.game.config.height / 2, 'player');
-
-    // scale down
-    this.player.setScale(0.5);
+    // this.player = this.add.sprite(40, this.sys.game.config.height / 2, 'player');
+    // this.player.setScale(0.5);
     // goal
+
     this.treasure = this.add.sprite(this.sys.game.config.width - 80, this.sys.game.config.height / 2, 'treasure');
     this.treasure.setScale(0.6);
 
@@ -52,22 +47,23 @@ gameScene.create = function() {
 
     this.enemies = this.add.group({
         key: 'dragon',
-        repeat: 0,
+        repeat: 2,
         setXY: {
-            x: 110,
-            y: 300,
+            x: 0,
+            y: 50,
             // stepX: 80,
-            // stepY: 20
+            stepY: 200
         }
     });
-    let enemies = this.enemies;
-    let enemySpeed = this.enemySpeed;
-    let this2 = this;
-    setInterval(function(){
-        enemies.create(234,543, 'dragon');
-        console.log('dziala', enemies.getChildren());
-         },
-      3000);
+
+    let thisScene = this;
+    setInterval(function () {
+        let newEnemy = thisScene.add.sprite(0, Math.random() * 500 + 50, 'dragon');
+        newEnemy.speed = Math.random() * thisScene.enemySpeed + 1;
+        newEnemy.scaleX = 0.5;
+        newEnemy.scaleY = 0.5;
+        thisScene.enemies.add(newEnemy);
+    }, 2000);
 
     // scale enemies
     Phaser.Actions.ScaleXY(this.enemies.getChildren(), -0.5, -0.5);
@@ -86,6 +82,7 @@ gameScene.update = function() {
     if (!this.isPlayerAlive) {
         return;
     }
+    /*
     // check for active input
     if (this.input.activePointer.isDown) {
         // player walks
@@ -96,28 +93,27 @@ gameScene.update = function() {
     if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), this.treasure.getBounds())) {
         this.gameOver();
     }
+    */
     // enemy movement
     let enemies = this.enemies.getChildren();
     let numEnemies = enemies.length;
-    console.log(numEnemies);
-
+    let cords = '';
     for (let i = 0; i < numEnemies; i++) {
-
         // move enemies
         enemies[i].x += enemies[i].speed;
-        console.log(enemies[i].x);
-
+        cords += 'X: '+enemies[i].x+', ';
         // reverse movement if reached the edges
         if (enemies[i].x >= this.enemyMaxX && enemies[i].speed > 0) {
             enemies[i].speed *= -1;
         } else if (enemies[i].xX <= this.enemyMinX && enemies[i].speed < 0) {
             enemies[i].speed *= -1;
         }
+        /*
         // enemy collision
         if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), enemies[i].getBounds())) {
             this.gameOver();
             break;
-        }
+        }*/
         // enemy collision
         if (Phaser.Geom.Intersects.RectangleToRectangle(this.treasure.getBounds(), enemies[i].getBounds())) {
             this.lives--;
@@ -125,13 +121,11 @@ gameScene.update = function() {
             enemies[i].x = 110;
         }
     }
+    // console.log(cords);
 };
-
 
 // end the game
 gameScene.gameOver = function() {
-
-
     // flag to set player is dead
     this.isPlayerAlive = false;
     // shake the camera
