@@ -49,6 +49,7 @@ gameScene.create = function() {
     this.treasure.setScale(0.6);
 
     // group of enemies
+
     this.enemies = this.add.group({
         key: 'dragon',
         repeat: 0,
@@ -59,12 +60,20 @@ gameScene.create = function() {
             // stepY: 20
         }
     });
+    let enemies = this.enemies;
+    let enemySpeed = this.enemySpeed;
+    let this2 = this;
+    setInterval(function(){
+        enemies.create(234,543, 'dragon');
+        console.log('dziala', enemies.getChildren());
+         },
+      3000);
 
     // scale enemies
     Phaser.Actions.ScaleXY(this.enemies.getChildren(), -0.5, -0.5);
     // set speeds
     Phaser.Actions.Call(this.enemies.getChildren(), function(enemy) {
-        enemy.speed = Math.random() * 5 + 1;
+        enemy.speed = Math.random() * this.enemySpeed + 1;
     }, this);
 
     // player is alive
@@ -90,11 +99,13 @@ gameScene.update = function() {
     // enemy movement
     let enemies = this.enemies.getChildren();
     let numEnemies = enemies.length;
+    console.log(numEnemies);
 
     for (let i = 0; i < numEnemies; i++) {
 
         // move enemies
         enemies[i].x += enemies[i].speed;
+        console.log(enemies[i].x);
 
         // reverse movement if reached the edges
         if (enemies[i].x >= this.enemyMaxX && enemies[i].speed > 0) {
