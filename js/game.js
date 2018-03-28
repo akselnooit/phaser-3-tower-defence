@@ -15,12 +15,13 @@ let game = new Phaser.Game(config);
 // some parameters for our scene (our own customer variables - these are NOT part of the Phaser API)
 gameScene.init = function() {
     this.enemySpeed = 2;
-    this.towerX = 950;
+    this.castleX = 950;
     this.xOutsideMap = 1100;
     this.enemySpawnX = 10;
     this.lives = 100;
     this.spawnSpeed = 5000;
     this.spawnSpeedDecrement = 500;
+    this.towerRange = 100;
 };
 
 // load asset files for our game
@@ -31,6 +32,7 @@ gameScene.preload = function() {
     this.load.image('dragon', 'assets/dragon.png');
     this.load.image('treasure', 'assets/treasure.png');
     this.load.image('tower', 'assets/tower.png');
+    this.load.image('range', 'assets/range.png');
 };
 
 // executed once, after assets were loaded
@@ -41,6 +43,7 @@ gameScene.create = function() {
     this.bg.setOrigin(0,0); // change origin to the top-left of the sprite
 
     this.towerToMove = null;
+    this.towers = [];
     this.bg.on('pointerdown', function (pointer) {
         if (thisScene.towerToMove !== null) {
             thisScene.towerToMove.x = pointer.downX;
@@ -72,6 +75,8 @@ gameScene.update = function() {
     let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
     if (keyA.isDown)
     {
+        // new Phaser.Geom.Circle(300, 100, 64);
+        // this.add.sprite(0, 0, 'background')
         spawnTower(this);
     }
     /*
@@ -82,14 +87,22 @@ gameScene.update = function() {
     */
     // enemy movement
     let enemies = this.enemies.getChildren();
-    let numEnemies = enemies.length;
-    for (let i = 0; i < numEnemies; i++) {
+    for (let i = 0; i < enemies.length; i++) {
         if (enemies[i].speed > 0) {
             enemies[i].x += enemies[i].speed;
-            if (enemies[i].x >= this.towerX ) {
-                enemies[i].speed = 0;
-                enemies[i].x = this.xOutsideMap;
+            if (enemies[i].x >= this.castleX ) {
+                deactivateEnemy(enemies[i], this);
                 this.lives--;
+            }
+
+            // check if any tower ranges the enemy
+            for (let j = 0; j < this.towers.length; j++) {
+                let towerRange = new Phaser.Geom.Circle(this.towers[j].x, this.towers[j].y, this.towerRange);
+                if (Phaser.Geom.Intersects.CircleToRectangle(towerRange, enemies[i].getBounds()))
+                {
+                    deactivateEnemy(enemies[i], this);
+
+                }
             }
         }
     }
@@ -148,6 +161,8 @@ function spawnEnemy(scene) {
 
 function spawnTower(scene) {
     let tower = scene.add.sprite(700, 400, 'tower').setInteractive();
+    scene.towers.push(tower);
+
     tower.on('pointerdown', function (pointer) {
         if (scene.towerToMove !== null) {
             scene.towerToMove.alpha = 1;
@@ -155,5 +170,10 @@ function spawnTower(scene) {
         scene.towerToMove = tower;
         tower.alpha = 0.5;
     });
+}
 
+function deactivateEnemy (enemy, scene) {
+    enemy.speed = 0;
+    enemy.x = scene.xOutsideMap;
+    scene.enemiesToReuse.push(enemy);
 }
