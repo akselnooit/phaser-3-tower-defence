@@ -14,7 +14,6 @@ let game = new Phaser.Game(config);
 
 // some parameters for our scene (our own customer variables - these are NOT part of the Phaser API)
 gameScene.init = function() {
-    this.playerSpeed = 5;
     this.enemySpeed = 2;
     this.towerX = 950;
     this.xOutsideMap = 1100;
@@ -26,71 +25,56 @@ gameScene.init = function() {
 
 // load asset files for our game
 gameScene.preload = function() {
-
     // load images
     this.load.image('background', 'assets/bg.png');
     this.load.image('player', 'assets/player.png');
     this.load.image('dragon', 'assets/dragon.png');
     this.load.image('treasure', 'assets/treasure.png');
+    this.load.image('tower', 'assets/tower.png');
 };
 
 // executed once, after assets were loaded
 gameScene.create = function() {
-    let bg = this.add.sprite(0, 0, 'background');
-    bg.setOrigin(0,0); // change origin to the top-left of the sprite
+    let thisScene = this;
 
-    // this.player = this.add.sprite(40, this.sys.game.config.height / 2, 'player');
-    // this.player.setScale(0.5);
-    // goal
+    this.bg = this.add.sprite(0, 0, 'background').setInteractive();
+    this.bg.setOrigin(0,0); // change origin to the top-left of the sprite
+
+    this.towerToMove = null;
+    this.bg.on('pointerdown', function (pointer) {
+        if (thisScene.towerToMove !== null) {
+            thisScene.towerToMove.x = pointer.downX;
+            thisScene.towerToMove.y = pointer.downY;
+            thisScene.towerToMove.alpha = 1;
+            thisScene.towerToMove = null;
+        }
+    });
 
     this.treasure = this.add.sprite(this.sys.game.config.width - 80, this.sys.game.config.height / 2, 'treasure');
     this.treasure.setScale(0.6);
 
-    // group of enemies
-
-    this.enemies = this.add.group({
-        key: 'dragon',
-        repeat: 2,
-        setXY: {
-            x: 0,
-            y: 50,
-            // stepX: 80,
-            stepY: 200
-        }
-    });
-
-    // if an enemy goes outside the map, we leave him invisible, so that we can use him later.
-    this.enemiesToReuse = [];
-
-    let thisScene = this;
-    setTimeout(function () {
-        spawnEnemy(thisScene);
-    }, this.spawnSpeed);
-
-    // scale enemies
+    this.enemies = this.add.group({key: 'dragon', repeat: 2, setXY: {x: 0, y: 50, stepY: 200}});
     Phaser.Actions.ScaleXY(this.enemies.getChildren(), -0.5, -0.5);
-    // set speeds
     Phaser.Actions.Call(this.enemies.getChildren(), function(enemy) {
         enemy.speed = Math.random() * this.enemySpeed + 1;
     }, this);
 
-    // player is alive
-    this.isPlayerAlive = true;
     document.getElementById('lives').innerHTML = this.lives + ' lives left';
+
+    // if an enemy goes outside the map, we leave him invisible, so that we can use him later.
+    this.enemiesToReuse = [];
+    setTimeout(function () {spawnEnemy(thisScene)}, this.spawnSpeed);
+    spawnTower(this)
 };
 
 // executed on every frame (60 times per second)
 gameScene.update = function() {
-    if (!this.isPlayerAlive) {
-        return;
+    let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    if (keyA.isDown)
+    {
+        spawnTower(this);
     }
     /*
-    // check for active input
-    if (this.input.activePointer.isDown) {
-        // player walks
-        this.player.x += this.playerSpeed;
-        // player walks
-    }
     // treasure collision
     if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), this.treasure.getBounds())) {
         this.gameOver();
@@ -149,8 +133,27 @@ function spawnEnemy(scene) {
     newEnemy.speed = Math.random() * scene.enemySpeed + 1;
     newEnemy.scaleX = newEnemy.scaleY = 0.5;
 
-    scene.spawnSpeed -= scene.spawnSpeedDecrement;
+
+    if (scene.spawnSpeed > 200) {
+        scene.spawnSpeed -= scene.spawnSpeedDecrement;
+    }
+    if (scene.spawnSpeed < 200) {
+        scene.spawnSpeed = 200;
+    }
+
     setTimeout(function () {
         spawnEnemy(scene);
     }, scene.spawnSpeed);
+}
+
+function spawnTower(scene) {
+    let tower = scene.add.sprite(700, 400, 'tower').setInteractive();
+    tower.on('pointerdown', function (pointer) {
+        if (scene.towerToMove !== null) {
+            scene.towerToMove.alpha = 1;
+        }
+        scene.towerToMove = tower;
+        tower.alpha = 0.5;
+    });
+
 }
