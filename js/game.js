@@ -20,9 +20,11 @@ gameScene.init = function() {
     this.enemySpawnX = 10;
     this.lives = 100;
     this.points = 0;
-    this.spawnSpeed = 5000;
-    this.spawnSpeedDecrement = 500;
-    this.towerRange = 100;
+    this.spawnSpeed = 3000;
+    this.spawnSpeedDecrement = 50;
+    this.spawnSpeedMin = 400;
+    this.towerRange = 80;
+    this.maxTowerMoves = 3;
 };
 
 // load asset files for our game
@@ -40,6 +42,8 @@ gameScene.create = function() {
 
     this.bg = this.add.sprite(0, 0, 'background').setInteractive();
     this.bg.setOrigin(0,0); // change origin to the top-left of the sprite
+    this.spawnText = this.add.text(50, 550, 'Click A to spawn a Tower');
+    this.spawnTextWait = this.add.text(50, 550, 'You can spawn a Tower each 5 sec');
 
     this.towerToMove = null;
     this.towers = [];
@@ -63,11 +67,14 @@ gameScene.create = function() {
     // if an enemy goes outside the map, we leave him invisible, so that we can use him later.
     this.enemiesToReuse = [];
     setTimeout(function () {spawnEnemy(thisScene)}, this.spawnSpeed);
-    spawnTower(this)
+    spawnTower(this);
 };
 
 // executed on every frame (60 times per second)
 gameScene.update = function() {
+    this.spawnText.visible = this.towerCanBeSpawned;
+    this.spawnTextWait.visible = !this.towerCanBeSpawned;
+
     let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
     if (keyA.isDown)
     {
@@ -134,11 +141,11 @@ function spawnEnemy(scene) {
     newEnemy.scaleX = newEnemy.scaleY = 0.5;
 
 
-    if (scene.spawnSpeed > 200) {
+    if (scene.spawnSpeed > scene.spawnSpeedMin) {
         scene.spawnSpeed -= scene.spawnSpeedDecrement;
     }
-    if (scene.spawnSpeed < 200) {
-        scene.spawnSpeed = 200;
+    if (scene.spawnSpeed < scene.spawnSpeedMin) {
+        scene.spawnSpeed = scene.spawnSpeedMin;
     }
 
     setTimeout(function () {
@@ -150,9 +157,11 @@ function spawnTower(scene) {
     if (scene.towerCanBeSpawned) {
         let range = scene.add.sprite(700, 400, 'range');
         let tower = scene.add.sprite(700, 400, 'tower').setInteractive();
+        tower.scaleX = tower.scaleY = 0.5;
+        tower.movesLeft = scene.maxTowerMoves;
         tower.range = range;
         tower.range.alpha = 0;
-        tower.range.scaleX = tower.range.scaleY = 0.7;
+        tower.range.scaleX = tower.range.scaleY = 0.6;
         scene.tweens.add({
             targets: tower.range,
             alpha: 0.6,
@@ -162,11 +171,13 @@ function spawnTower(scene) {
         scene.towers.push(tower);
 
         tower.on('pointerdown', function (pointer) {
-            if (scene.towerToMove !== null) {
-                scene.towerToMove.alpha = 1;
+            if (tower.movesLeft > 0) {
+                if (scene.towerToMove !== null) {
+                    scene.towerToMove.alpha = 1;
+                }
+                scene.towerToMove = tower;
+                tower.alpha = 0.5;
             }
-            scene.towerToMove = tower;
-            tower.alpha = 0.5;
         });
 
         scene.towerCanBeSpawned = false;
@@ -183,13 +194,18 @@ function deactivateEnemy (enemy, scene) {
 }
 
 function moveTower (tower, x, y, scene) {
+    if (x < 500)
+        x = 500;
     tower.x = tower.range.x = x;
     tower.y = tower.range.y = y;
-    tower.range.alpha = 0;
-    scene.tweens.add({
-        targets: tower.range,
-        alpha: 0.6,
-        duration: 2000,
-        ease: 'Power0'
-    });
+    tower.movesLeft--;
+    tower.range.alpha = 0.1;
+    if (tower.movesLeft > 0) {
+        scene.tweens.add({
+            targets: tower.range,
+            alpha: 0.6,
+            duration: 500,
+            ease: 'Power0'
+        });
+    }
 }
