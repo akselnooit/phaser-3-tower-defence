@@ -19,6 +19,7 @@ gameScene.init = function() {
     this.xOutsideMap = 1100;
     this.enemySpawnX = 10;
     this.lives = 100;
+    this.points = 0;
     this.spawnSpeed = 5000;
     this.spawnSpeedDecrement = 500;
     this.towerRange = 100;
@@ -28,11 +29,9 @@ gameScene.init = function() {
 gameScene.preload = function() {
     // load images
     this.load.image('background', 'assets/bg.png');
-    this.load.image('player', 'assets/player.png');
     this.load.image('dragon', 'assets/dragon.png');
-    this.load.image('treasure', 'assets/treasure.png');
     this.load.image('tower', 'assets/tower.png');
-    this.load.image('range', 'assets/range.png');
+    this.load.image('range', 'assets/range.gif');
 };
 
 // executed once, after assets were loaded
@@ -44,18 +43,15 @@ gameScene.create = function() {
 
     this.towerToMove = null;
     this.towers = [];
+    this.towerCanBeSpawned = true;
+
     this.bg.on('pointerdown', function (pointer) {
         if (thisScene.towerToMove !== null) {
-            thisScene.towerToMove.x = pointer.downX;
-            thisScene.towerToMove.y = pointer.downY;
+            moveTower(thisScene.towerToMove, pointer.downX, pointer.downY, thisScene);
             thisScene.towerToMove.alpha = 1;
             thisScene.towerToMove = null;
         }
     });
-
-    this.treasure = this.add.sprite(this.sys.game.config.width - 80, this.sys.game.config.height / 2, 'treasure');
-    this.treasure.setScale(0.6);
-
     this.enemies = this.add.group({key: 'dragon', repeat: 2, setXY: {x: 0, y: 50, stepY: 200}});
     Phaser.Actions.ScaleXY(this.enemies.getChildren(), -0.5, -0.5);
     Phaser.Actions.Call(this.enemies.getChildren(), function(enemy) {
@@ -75,16 +71,8 @@ gameScene.update = function() {
     let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
     if (keyA.isDown)
     {
-        // new Phaser.Geom.Circle(300, 100, 64);
-        // this.add.sprite(0, 0, 'background')
         spawnTower(this);
     }
-    /*
-    // treasure collision
-    if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), this.treasure.getBounds())) {
-        this.gameOver();
-    }
-    */
     // enemy movement
     let enemies = this.enemies.getChildren();
     for (let i = 0; i < enemies.length; i++) {
@@ -101,18 +89,17 @@ gameScene.update = function() {
                 if (Phaser.Geom.Intersects.CircleToRectangle(towerRange, enemies[i].getBounds()))
                 {
                     deactivateEnemy(enemies[i], this);
-
+                    this.points++;
                 }
             }
         }
     }
     document.getElementById("lives").innerHTML = this.lives + ' lives left';
+    document.getElementById("points").innerHTML = this.points + ' points';
 };
 
 // end the game
 gameScene.gameOver = function() {
-    // flag to set player is dead
-    this.isPlayerAlive = false;
     // shake the camera
     this.cameras.main.shake(500);
 
@@ -160,20 +147,49 @@ function spawnEnemy(scene) {
 }
 
 function spawnTower(scene) {
-    let tower = scene.add.sprite(700, 400, 'tower').setInteractive();
-    scene.towers.push(tower);
+    if (scene.towerCanBeSpawned) {
+        let range = scene.add.sprite(700, 400, 'range');
+        let tower = scene.add.sprite(700, 400, 'tower').setInteractive();
+        tower.range = range;
+        tower.range.alpha = 0;
+        tower.range.scaleX = tower.range.scaleY = 0.7;
+        scene.tweens.add({
+            targets: tower.range,
+            alpha: 0.6,
+            duration: 2000,
+            ease: 'Power0'
+        });
+        scene.towers.push(tower);
 
-    tower.on('pointerdown', function (pointer) {
-        if (scene.towerToMove !== null) {
-            scene.towerToMove.alpha = 1;
-        }
-        scene.towerToMove = tower;
-        tower.alpha = 0.5;
-    });
+        tower.on('pointerdown', function (pointer) {
+            if (scene.towerToMove !== null) {
+                scene.towerToMove.alpha = 1;
+            }
+            scene.towerToMove = tower;
+            tower.alpha = 0.5;
+        });
+
+        scene.towerCanBeSpawned = false;
+        setTimeout(function () {
+            scene.towerCanBeSpawned = true;
+        }, 5000);
+    }
 }
 
 function deactivateEnemy (enemy, scene) {
     enemy.speed = 0;
     enemy.x = scene.xOutsideMap;
     scene.enemiesToReuse.push(enemy);
+}
+
+function moveTower (tower, x, y, scene) {
+    tower.x = tower.range.x = x;
+    tower.y = tower.range.y = y;
+    tower.range.alpha = 0;
+    scene.tweens.add({
+        targets: tower.range,
+        alpha: 0.6,
+        duration: 2000,
+        ease: 'Power0'
+    });
 }
